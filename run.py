@@ -53,6 +53,7 @@ if __name__ == "__main__":
     random.shuffle(iris_data)
     dom_inf_dict = {}
     cod_inf_dict = {}
+
     for i in range(2, len(iris_data)):
         test_iris_data = iris_data[:i]
         x1_capacity = len(set(_iris.sepal_length for _iris in test_iris_data))
@@ -62,6 +63,7 @@ if __name__ == "__main__":
 
         n = x1_capacity + x2_capacity + x3_capacity + x4_capacity
         inf = [log(x, n) for x in [x1_capacity, x2_capacity, x3_capacity, x4_capacity]]
+        # изменить mean (смотри нампай)
         mean_inf = sum(inf)/len(inf)
         dom_inf_dict[i] = mean_inf
 
@@ -86,6 +88,8 @@ if __name__ == "__main__":
             y_capacity.append(len(iris_types_dict[iris_type]))
         n = sum(y_capacity)
         inf = [log(x, n) for x in y_capacity]
+
+        # изменить mean (смотри нампай)
         mean_inf = sum(inf)/len(inf)
         cod_inf_dict[i] = mean_inf
 
