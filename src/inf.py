@@ -1,4 +1,6 @@
 import copy
+import logging
+import sys
 import time
 from collections import Counter
 from scipy.special import factorial, comb
@@ -16,30 +18,33 @@ import itertools
 # numba
 # from graph_writer import to_graph
 
+logger = logging.getLogger(__name__)
+__author__ = 'Ildar Baimuratov (baimuratov.i@gmail.com)'
+
+
+# def parts(n):
+#     a = [1] * n
+#     y = -1
+#     v = n
+#     while v > 0:
+#         v -= 1
+#         x = a[v] + 1
+#         while y >= 2 * x:
+#             a[v] = x
+#             y -= x
+#             v += 1
+#         w = v + 1
+#         while x <= y:
+#             a[v] = x
+#             a[w] = y
+#             yield a[:w + 1]
+#             x += 1
+#             y -= 1
+#         a[v] = x + y
+#         y = a[v] - 1
+#         yield a[:w]
 
 def parts(n):
-    a = [1] * n
-    y = -1
-    v = n
-    while v > 0:
-        v -= 1
-        x = a[v] + 1
-        while y >= 2 * x:
-            a[v] = x
-            y -= x
-            v += 1
-        w = v + 1
-        while x <= y:
-            a[v] = x
-            a[w] = y
-            yield a[:w + 1]
-            x += 1
-            y -= 1
-        a[v] = x + y
-        y = a[v] - 1
-        yield a[:w]
-
-def gen_partitions_ms(n):
     """Generate all partitions of integer n (>= 0).
 
     Each partition is represented as a multiset, i.e. a dictionary
@@ -91,156 +96,6 @@ def gen_partitions_ms(n):
             keys.append(r)
 
         yield ms
-
-def partitions2(n, k=None):
-    """Generate all partitions of integer n (>= 0) using integers no
-    greater than k (default, None, allows the partition to contain n).
-
-    Each partition is represented as a multiset, i.e. a dictionary
-    mapping an integer to the number of copies of that integer in
-    the partition.  For example, the partitions of 4 are {4: 1},
-    {3: 1, 1: 1}, {2: 2}, {2: 1, 1: 2}, and {1: 4} corresponding to
-    [4], [1, 3], [2, 2], [1, 1, 2] and [1, 1, 1, 1], respectively.
-    In general, sum(k * v for k, v in a_partition.iteritems()) == n, and
-    len(a_partition) is never larger than about sqrt(2*n).
-
-    Note that the _same_ dictionary object is returned each time.
-    This is for speed:  generating each partition goes quickly,
-    taking constant time independent of n. If you want to build a list
-    of returned values then use .copy() to get copies of the returned
-    values:
-
-    >>> p_all = []
-    >>> for p in partitions(6, 2):
-    ...         p_all.append(p.copy())
-    ...
-    >>> print p_all
-    [{2: 3}, {1: 2, 2: 2}, {1: 4, 2: 1}, {1: 6}]
-
-    Reference
-    ---------
-    Modified from Tim Peter's posting to accomodate a k value:
-    http://code.activestate.com/recipes/218332/
-    """
-
-    if n < 0:
-        raise ValueError("n must be >= 0")
-
-    if n == 0:
-        yield {}
-        return
-
-    if k is None or k > n:
-        k = n
-
-    q, r = divmod(n, k)
-    ms = {k : q}
-    keys = [k]
-    if r:
-        ms[r] = 1
-        keys.append(r)
-    yield ms
-
-    while keys != [1]:
-        # Reuse any 1's.
-        if keys[-1] == 1:
-            del keys[-1]
-            reuse = ms.pop(1)
-        else:
-            reuse = 0
-
-        # Let i be the smallest key larger than 1.  Reuse one
-        # instance of i.
-        i = keys[-1]
-        newcount = ms[i] = ms[i] - 1
-        reuse += i
-        if newcount == 0:
-            del keys[-1], ms[i]
-
-        # Break the remainder into pieces of size i-1.
-        i -= 1
-        q, r = divmod(reuse, i)
-        ms[i] = q
-        keys.append(i)
-        if r:
-            ms[r] = 1
-            keys.append(r)
-
-        yield ms
-
-def test():
-    start2 = time.time()
-    x = gen_partitions_ms(150)
-    # for i in x:
-    #     print(i)
-    length = sum(1 for el in x)
-    # my_array = np.array()
-    # for i, el in enumerate(x):
-    #     my_array[i] = el
-    # print(len(my_array))
-    print(length)
-    stop2 = time.time() - start2
-    print(stop2)
-
-# https://www.dcode.fr/partitions-generator
-if __name__ == "__main__":
-    # x = partitions(40)
-    # time_serioes1 = {}
-    # for i in range(1, 100, 5):
-    #     start = time.time()
-    #     length = sum(1 for el in gen_partitions_ms(i))
-    #     print(length)
-    #
-    #     time_serioes1[i] = time.time() - start
-    # to_graph(time_serioes1, title='Скорость работы', x_label='Число', y_label='Время разбиения')
-    # print('--------------------------------')
-    # print('--------------------------------')
-    # print('--------------------------------')
-    # print(time_serioes1)
-    #
-    #
-    # time_serioes2 = {}
-    # for i in range(60):
-    #     start = time.time()
-    #     print(len(list(partition_1(i))))
-    #     time_serioes2[i] = time.time() - start
-    #
-    # to_graph(time_serioes2)
-
-    # start1 = time.time()
-    # print(len(list(partitions2(10))))
-    # p_all = []
-
-    # for p in partitions2(50, 3):
-    #     p_all.append(p.copy())
-    #
-    # for item in sorted(p_all, key=lambda k: sum(k.keys())):
-    #     print(f' {sum(item.keys())} - {item}')
-    #
-    # stop1 = time.time() - start1
-    # print(stop1)
-
-    # cProfile.run('test()')
-    test()
-
-    # start2 = time.time()
-    # x = parts(75)
-    # print(len(list(x)))
-    # for i in x:
-    #     print(i)
-    # stop2 = time.time() - start2
-    # print(stop2)
-
-    # start3 = time.time()
-    # print(len(list(parts(77))))
-    # stop3 = time.time() - start3
-    #
-    # print(stop1, stop3)
-
-    # for i in partitions(70):
-    #     print(i)
-    # print(time.time() - start)
-
 
 # Преобрабазование формата
 def part(X):
@@ -305,14 +160,45 @@ def entr(part):
 # Получение массива с количеством подмножеств и средней энтропией
 def get_k_arr(n):
     arr = []
+    part_max = {}
+    part_min = {}
+    _max = 0
+    _min = sys.maxsize
     for i in range(1, n + 1):
         arr.append([i, 0])
 
     _parts = parts(n)
     for _part in _parts:
+        part_len = len(_part) - 1
+
         _entr = entr(_part)
         _part_prob = part_prob(_part)
-        arr[len(_part) - 1][1] += _part_prob * Decimal(_entr)
+
+        prob_dec =_part_prob * Decimal(_entr)
+
+        arr[part_len][1] += prob_dec
+
+        if part_max.get(part_len):
+            if prob_dec > part_max[part_len]:
+                part_max[part_len] = prob_dec
+                logger.info(f'Max entropy  for {part_len} changed from {part_max.get(part_len)} to {prob_dec}')
+        else:
+            part_max[part_len] = prob_dec
+
+        if part_min.get(part_len):
+            if prob_dec < part_min[part_len]:
+                part_min[part_len] = prob_dec
+                logger.info(f'Min entropy  for {part_len} changed from {part_min.get(part_len)} to {prob_dec}')
+        else:
+            part_min[part_len] = prob_dec
+
+        if _min > prob_dec:
+            _min = prob_dec
+            logger.info(f'Min entropy changed from {part_min.get(part_len)} to {prob_dec}')
+
+        if _max < prob_dec:
+            _min = prob_dec
+            logger.info(f'Max entropy changed from {part_max.get(part_len)} to {prob_dec}')
 
     return arr
 
