@@ -14,8 +14,6 @@ from src.log_config import config_log
 config_log()
 logger = logging.getLogger(__name__)
 
-__author__ = 'Stefan Morozov (kilokso86@gmail.com)'
-
 
 def arg_parser():
     parser = argparse.ArgumentParser(description='Tool to calculate informative criteria described in '
@@ -42,10 +40,16 @@ if __name__ == "__main__":
     X, Y, y_names = load_data(module_path=os.path.abspath(args.dataset_dir), data_file_name=args.dataset_name)
     logger.info(f'Data set was loaded')
 
-    n = len(Y)
-    #n = 20
-    if n > 100:
+    # n = len(Y)
+    n = 100
+    if n > 75:
         logger.info(f'Too big number {n}, be prepared for a long time...')
 
     entr_arr = inf.get_k_arr(n)
-    logger.info(f'Calculated entropy for parts of number {n} - {entr_arr}')
+    entr_arr_str = ''
+    for entr in entr_arr:
+        entr_arr_str += f'{entr}\n\t'
+    logger.info(f'Calculated entropy for parts of number {n}:\n\t{entr_arr_str}')
+
+    logger.info(f'Min entropy for number {n}: {min(entr_arr, key=lambda  x: x[1])}')
+    logger.info(f'Max entropy for number {n}: {max(entr_arr, key=lambda  x: x[1])}')

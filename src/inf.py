@@ -17,10 +17,9 @@ import itertools
 
 # numba
 # from graph_writer import to_graph
+from src.progress_bar import part_progress_bar
 
 logger = logging.getLogger(__name__)
-__author__ = 'Ildar Baimuratov (baimuratov.i@gmail.com)'
-
 
 # def parts(n):
 #     a = [1] * n
@@ -43,6 +42,7 @@ __author__ = 'Ildar Baimuratov (baimuratov.i@gmail.com)'
 #         a[v] = x + y
 #         y = a[v] - 1
 #         yield a[:w]
+
 
 def parts(n):
     """Generate all partitions of integer n (>= 0).
@@ -156,49 +156,50 @@ def entr(part):
 
     return np.mean(inf)
 
-
 # Получение массива с количеством подмножеств и средней энтропией
 def get_k_arr(n):
     arr = []
-    part_max = {}
-    part_min = {}
-    _max = 0
+    _max = Decimal(-1)
     _min = sys.maxsize
     for i in range(1, n + 1):
         arr.append([i, 0])
 
-    _parts = parts(n)
-    for _part in _parts:
-        part_len = len(_part) - 1
+    logger.info(f'Start very slow part of code')
+    part_count = sum(1 for _ in parts(n))
+    time.sleep(5)
 
-        _entr = entr(_part)
-        _part_prob = part_prob(_part)
+    ping_counter = 0
+    _parts = parts(n)
+
+    start_time = time.time()
+    for i, _part_dict in enumerate(_parts):
+        _part_list = []
+        for number_count in _part_dict:
+            _part_list += [number_count]*_part_dict[number_count]
+
+        part_len = len(_part_list) - 1
+
+        _entr = entr(_part_list)
+        _part_prob = part_prob(_part_list)
 
         prob_dec =_part_prob * Decimal(_entr)
 
         arr[part_len][1] += prob_dec
 
-        if part_max.get(part_len):
-            if prob_dec > part_max[part_len]:
-                part_max[part_len] = prob_dec
-                logger.info(f'Max entropy  for {part_len} changed from {part_max.get(part_len)} to {prob_dec}')
-        else:
-            part_max[part_len] = prob_dec
-
-        if part_min.get(part_len):
-            if prob_dec < part_min[part_len]:
-                part_min[part_len] = prob_dec
-                logger.info(f'Min entropy  for {part_len} changed from {part_min.get(part_len)} to {prob_dec}')
-        else:
-            part_min[part_len] = prob_dec
-
-        if _min > prob_dec:
-            _min = prob_dec
-            logger.info(f'Min entropy changed from {part_min.get(part_len)} to {prob_dec}')
+        ping_counter += 1
+        if ping_counter == 10000:
+            part_progress_bar(precent=round((100*i/part_count), 4),
+                              time_spend=round((time.time() - start_time)/60, 2),
+                              estimation=round(((time.time() - start_time)/i)*(part_count - i)/60, 2),
+                              current_max=_max,
+                              number_count=part_len)
+            # logger.info(f'One more 100 000 part\'s. Current max: {_max}')
+            # logger.info(f'Progress {100*i/part_count}%, estimation: {((time.time() - start_time)/i)*(part_count - i)/60} min')
+            ping_counter = 0
 
         if _max < prob_dec:
-            _min = prob_dec
-            logger.info(f'Max entropy changed from {part_max.get(part_len)} to {prob_dec}')
+            _max = prob_dec
+        #     logger.info(f'Max entropy changed from {_max} to {prob_dec}')
 
     return arr
 
