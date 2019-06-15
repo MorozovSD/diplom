@@ -13,13 +13,13 @@ def num_inf(n, k):
     print(k, end=', ')
     print("{:.2E}".format(y2_expentr))
     
-if __name__ == '__main__':
+if __name__ == '__main__':ve
 
     iris = datasets.load_iris()
     X = iris.data
     y3 = iris.target
-    n = len(y3)
-    #n = 20
+    # n = len(y3)
+    n = 10
 
     model = KMeans(n_clusters=2).fit(X)
     y2 = model.predict(X).tolist()

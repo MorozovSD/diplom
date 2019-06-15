@@ -1,10 +1,12 @@
+import sklearn
+
 import matplotlib.pyplot as plt
 from operator import itemgetter
 import random
 
 from src import inf
 
-n = 150
+n = 100
 m = 50000
 
 arr = []
@@ -24,6 +26,7 @@ for i in range(m):
     arr2.append([])
     arr2[-1].append(i)
     arr2[-1].append(temp[0][0])
+
 
     
 plt.plot([x[0] for x in arr2], [x[1] for x in arr2])

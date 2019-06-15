@@ -45,7 +45,10 @@ logger = logging.getLogger(__name__)
 
 
 def parts(n):
-    """Generate all partitions of integer n (>= 0).
+    """Generate all partitions of integer n (>= 0).Reference
+    ---------
+    Tim Peter's posting:
+    http://code.activestate.com/recipes/218332/
 
     Each partition is represented as a multiset, i.e. a dictionary
     mapping an integer to the number of copies of that integer in
@@ -96,6 +99,87 @@ def parts(n):
             keys.append(r)
 
         yield ms
+
+# def partitions(n, k=None):
+#     """Generate all partitions of integer n (>= 0) using integers no
+#     greater than k (default, None, allows the partition to contain n).
+#
+#     Each partition is represented as a multiset, i.e. a dictionary
+#     mapping an integer to the number of copies of that integer in
+#     the partition.  For example, the partitions of 4 are {4: 1},
+#     {3: 1, 1: 1}, {2: 2}, {2: 1, 1: 2}, and {1: 4} corresponding to
+#     [4], [1, 3], [2, 2], [1, 1, 2] and [1, 1, 1, 1], respectively.
+#     In general, sum(k * v for k, v in a_partition.iteritems()) == n, and
+#     len(a_partition) is never larger than about sqrt(2*n).
+#
+#     Note that the _same_ dictionary object is returned each time.
+#     This is for speed:  generating each partition goes quickly,
+#     taking constant time independent of n. If you want to build a list
+#     of returned values then use .copy() to get copies of the returned
+#     values:
+#
+#     >>> p_all = []
+#     >>> for p in partitions(6, 2):
+#     ...         p_all.append(p.copy())
+#     ...
+#     >>> print p_all
+#     [{2: 3}, {1: 2, 2: 2}, {1: 4, 2: 1}, {1: 6}]
+#
+#     Reference
+#     ---------
+#     Modified from Tim Peter's posting to accomodate a k value:
+#     http://code.activestate.com/recipes/218332/
+#     """
+#
+#     if n < 0:
+#         raise ValueError("n must be >= 0")
+#
+#     if n == 0:
+#         yield {}
+#         return
+#
+#     if k is None or k > n:
+#         k = n
+#
+#     q, r = divmod(n, k)
+#     ms = {k: q}
+#     keys = [k]
+#     if r:
+#         ms[r] = 1
+#         keys.append(r)
+#     yield ms
+#
+#     while keys != [1]:
+#         # Reuse any 1's.
+#         if keys[-1] == 1:
+#             del keys[-1]
+#             reuse = ms.pop(1)
+#         else:
+#             reuse = 0
+#
+#         # Let i be the smallest key larger than 1.  Reuse one
+#         # instance of i.
+#         i = keys[-1]
+#         newcount = ms[i] = ms[i] - 1
+#         reuse += i
+#         if newcount == 0:
+#             del keys[-1], ms[i]
+#
+#         # Break the remainder into pieces of size i-1.
+#         i -= 1
+#         q, r = divmod(reuse, i)
+#         ms[i] = q
+#         keys.append(i)
+#         if r:
+#             ms[r] = 1
+#             keys.append(r)
+#
+#         yield ms
+
+
+if __name__ == "__main__":
+    for p in parts(10):
+        print(p)
 
 # Преобрабазование формата
 def part(X):
@@ -156,6 +240,15 @@ def entr(part):
 
     return np.mean(inf)
 
+#Возвращает характеристики массива
+def get_inf(y):
+
+    y_part = part(y)
+    y_entr = entr(y_part)
+    y_part_prob = part_prob(y_part)
+
+    return y_part, y_entr, y_part_prob, Decimal(y_entr)*y_part_prob
+
 # Получение массива с количеством подмножеств и средней энтропией
 def get_k_arr(n):
     arr = []
@@ -170,8 +263,45 @@ def get_k_arr(n):
 
     ping_counter = 0
     _parts = parts(n)
-
     start_time = time.time()
+
+    for i, _part_dict in enumerate(_parts):
+        _part_list = []
+        for number_count in _part_dict:
+            _part_list += [number_count]*_part_dict[number_count]
+
+        part_len = len(_part_list) - 1
+        print(_part_list)
+        _entr = entr(_part_list)
+        _part_prob = part_prob(_part_list)
+
+        prob_dec =_part_prob * Decimal(_entr)
+
+        arr[part_len][1] += prob_dec
+
+        if _max < prob_dec:
+            _max = prob_dec
+        ping_counter += 1
+
+        if ping_counter == 10000:
+            part_progress_bar(precent=round((100*i/part_count), 4),
+                              time_spend=round((time.time() - start_time)/60, 2),
+                              estimation=round(((time.time() - start_time)/i)*(part_count - i)/60, 2),
+                              current_max=_max,
+                              number_count=part_len)
+            ping_counter = 0
+
+    # entr_for_k_arr(_parts=_parts,
+    #                arr=arr,
+    #                part_count=part_count,
+    #                start_time=start_time,
+    #                _max=_max,
+    #                ping_counter=ping_counter)
+
+    return arr
+
+
+def entr_for_k_arr(_parts, arr, part_count, start_time, _max, ping_counter):
     for i, _part_dict in enumerate(_parts):
         _part_list = []
         for number_count in _part_dict:
@@ -186,105 +316,112 @@ def get_k_arr(n):
 
         arr[part_len][1] += prob_dec
 
+        if _max < prob_dec:
+            _max = prob_dec
         ping_counter += 1
+
         if ping_counter == 10000:
             part_progress_bar(precent=round((100*i/part_count), 4),
                               time_spend=round((time.time() - start_time)/60, 2),
                               estimation=round(((time.time() - start_time)/i)*(part_count - i)/60, 2),
                               current_max=_max,
                               number_count=part_len)
-            # logger.info(f'One more 100 000 part\'s. Current max: {_max}')
-            # logger.info(f'Progress {100*i/part_count}%, estimation: {((time.time() - start_time)/i)*(part_count - i)/60} min')
             ping_counter = 0
+        return arr
 
-        if _max < prob_dec:
-            _max = prob_dec
-        #     logger.info(f'Max entropy changed from {_max} to {prob_dec}')
+# Не используется
+def cod_inf(y):
+
+    y_part = part(y)
+    y_entr = entr(y_part)
+    y_part_prob = part_prob(y_part)
+
+    return y_entr, y_part_prob, Decimal(y_entr)*y_part_prob
+
+def num_inf_bayes(n, k):
+
+    _mean = 0
+    _parts = parts(n)
+    for _part in _parts:
+        if len(_part) == k:
+            _entr = entr(_part)
+            _part_prob = part_prob(_part)
+            _mean += _part_prob*Decimal(_entr)
+
+    print(k, end=', ')
+    print("{:.2E}".format(_mean))
+
+    return k, _mean
+
+def num_inf_laplas(n, k):
+
+    i = 0
+    _sum = 0
+    _parts = parts(n)
+    for _part in _parts:
+        i += 1
+        if len(_part) == k:
+            _sum += entr(_part)
+
+    _mean = _sum/i
+
+    print(k, end=', ')
+    print("{:.2E}".format(_mean))
+
+    return k, _mean
+
+def num_inf_wald(n, k):
+
+    arr = []
+    _min = 0
+    _parts = parts(n)
+    for _part in _parts:
+        if len(_part) == k:
+            _entr = entr(_part)
+            if _min == 0 or _entr < _min:
+                _min = _entr
+
+    return _min
+
+def get_inf_arr(n, k, queue):
+
+    queue.put(num_inf_bayes(n, k))
+
+def get_k(n):
+
+    jobs = []
+    for i in range(1, n+1):
+        p = Process(target=num_inf_bayes, args=(n, i))
+        p.start()
+        jobs.append(p)
+    for p in jobs:
+        p.join()
+
+def get_k_arr_l(n):
+
+    arr = []
+    for i in range(1, n+1):
+        arr.append([i, 0])
+
+    _parts = parts(n)
+    i = 0
+    for _part in _parts:
+        i += 1
+        _entr = entr(_part)
+        arr[len(_part)-1][1] += _entr
+
+    for line in arr:
+        line[1] /= line[1]/i
 
     return arr
 
-# Не используется
-# def cod_inf(y):
-#
-#     y_part = part(y)
-#     y_entr = entr(y_part)
-#     y_part_prob = part_prob(y_part)
-#
-#     return y_entr, y_part_prob, Decimal(y_entr)*y_part_prob
-#
-# def num_inf_bayes(n, k):
-#
-#     _mean = 0
-#     _parts = parts(n)
-#     for _part in _parts:
-#         if len(_part) == k:
-#             _entr = entr(_part)
-#             _part_prob = part_prob(_part)
-#             _mean += _part_prob*Decimal(_entr)
-#
-#     print(k, end=', ')
-#     print("{:.2E}".format(_mean))
-#
-#     return k, _mean
-#
-# def num_inf_laplas(n, k):
-#
-#     i = 0
-#     _sum = 0
-#     _parts = parts(n)
-#     for _part in _parts:
-#         i += 1
-#         if len(_part) == k:
-#             _sum += entr(_part)
-#
-#     _mean = _sum/i
-#
-#     print(k, end=', ')
-#     print("{:.2E}".format(_mean))
-#
-#     return k, _mean
-#
-# def num_inf_wald(n, k):
-#
-#     arr = []
-#     _min = 0
-#     _parts = parts(n)
-#     for _part in _parts:
-#         if len(_part) == k:
-#             _entr = entr(_part)
-#             if _min == 0 or _entr < _min:
-#                 _min = _entr
-#
-#     return _min
-#
-# def get_inf_arr(n, k, queue):
-#
-#     queue.put(num_inf_bayes(n, k))
-#
-# def get_k(n):
-#
-#     jobs = []
-#     for i in range(1, n+1):
-#         p = Process(target=num_inf_bayes, args=(n, i))
-#         p.start()
-#         jobs.append(p)
-#     for p in jobs:
-#         p.join()
-#
-# def get_k_arr_l(n):
-#
-#     arr = []
-#     for i in range(1, n+1):
-#         arr.append([i, 0])
-#
-#     _parts = parts(n)
-#     i = 0
-#     for _part in _parts:
-#         i += 1
-#         _entr = entr(_part)
-#         arr[len(_part)-1][1] += _entr
-#
-#     for line in arr:
-#         line[1] /= line[1]/i
-#
-#     return arr
+def evaluation(data, fusion_function, acceptance_function):
+    '''
+    :param list data: Набор входных данных
+    :param fusion_function: Функция обработки данных вычисляющая/попоставляющия каждому элементу из data - значение
+    :param acceptance_function: функция интерпритации комплексной оценки информативности
+    :return:
+    '''
+    x = data
+    y = fusion_function(data)
+    acceptance_function(get_inf(x), get_inf(y))

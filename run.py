@@ -41,7 +41,7 @@ if __name__ == "__main__":
     logger.info(f'Data set was loaded')
 
     # n = len(Y)
-    n = 100
+    n = 10
     if n > 75:
         logger.info(f'Too big number {n}, be prepared for a long time...')
 
